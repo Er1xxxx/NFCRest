@@ -1,0 +1,3 @@
+import {DatabaseSync} from 'node:sqlite';
+import fs from 'node:fs';
+export function database(path=':memory:') {const db=new DatabaseSync(path);db.exec(fs.readFileSync(new URL('../migrations/0001.sql',import.meta.url),'utf8'));return {native:db,prepare(sql){let args=[];const q={bind(...a){args=a;return q;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid)}};}};return q;},async batch(statements){db.exec('BEGIN');try{const out=[];for(const s of statements)out.push(await s.run());db.exec('COMMIT');return out;}catch(e){db.exec('ROLLBACK');throw e;}}};}
